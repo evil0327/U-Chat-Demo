@@ -68,6 +68,8 @@ public class MainFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        DaggerComponentHolder.getAppComponent().inject(this);
+
         mProfileDialog = new ProfileDialog(getContext());
         if(mLocalRepository.isFirstTimeUse()){
             mLocalRepository.saveFirstTimeUse(false);
