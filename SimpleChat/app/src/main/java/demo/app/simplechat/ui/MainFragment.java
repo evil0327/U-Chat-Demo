@@ -68,13 +68,6 @@ public class MainFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder()
-                .detectCustomSlowCalls() //API等級11，使用StrictMode.noteSlowCode
-                .detectAll()
-                .penaltyLog() //在Logcat 中列印違規異常資訊
-                .build());
-        DaggerComponentHolder.getAppComponent().inject(this);
-
         mProfileDialog = new ProfileDialog(getContext());
         if(mLocalRepository.isFirstTimeUse()){
             mLocalRepository.saveFirstTimeUse(false);
