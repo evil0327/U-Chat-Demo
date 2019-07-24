@@ -37,7 +37,7 @@ import io.reactivex.functions.Action;
 import io.reactivex.schedulers.Schedulers;
 import timber.log.Timber;
 
-public class MainViewModel extends ViewModel {
+public class MainViewModel extends BaseViewModel {
     private MutableLiveData<HashMap<String, User>> mUsersLiveData = new MutableLiveData<>();
     private DBRepository mDBRepository;
     private LocalRepository mLocalRepository;
@@ -62,7 +62,7 @@ public class MainViewModel extends ViewModel {
                 .subscribe(new SingleObserver<List<User>>() {
                     @Override
                     public void onSubscribe(Disposable d) {
-
+                        mDisposables.add(d);
                     }
 
                     @Override
@@ -110,7 +110,8 @@ public class MainViewModel extends ViewModel {
         HashMap<String, User> map = mUserCache.getUserMap();
         map.put(user.getUid(), user);
 
-        Completable.fromAction(() -> mDBRepository.upsertUser(user)).subscribeOn(Schedulers.io()).subscribe();
+        Disposable d = Completable.fromAction(() -> mDBRepository.upsertUser(user)).subscribeOn(Schedulers.io()).subscribe();
+        mDisposables.add(d);
 
     }
 

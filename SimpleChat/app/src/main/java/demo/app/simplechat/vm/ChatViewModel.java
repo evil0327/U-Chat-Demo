@@ -92,7 +92,7 @@ public class ChatViewModel extends BaseViewModel {
                 .subscribe(new SingleObserver<List<ChatMessage>>() {
                     @Override
                     public void onSubscribe(Disposable d) {
-
+                        mDisposables.add(d);
                     }
 
                     @Override
