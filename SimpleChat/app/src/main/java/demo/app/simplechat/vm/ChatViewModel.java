@@ -149,14 +149,8 @@ public class ChatViewModel extends BaseViewModel {
                     mMessageIdSet.add(chatMessage.getId());
                     currentList.add(chatMessage);
 
-                    Disposable d = Completable.fromAction(new Action() {
-                        @Override
-                        public void run() throws Exception {
-                            mDBRepository.insertChatMessage(chatMessage);
-                        }
-                    }).subscribeOn(Schedulers.io()).subscribe();
+                    Disposable d = Completable.fromAction(() -> mDBRepository.insertChatMessage(chatMessage)).subscribeOn(Schedulers.io()).subscribe();
                     mDisposables.add(d);
-
                 }
 
                 mMessagesLiveData.postValue(currentList);

@@ -26,9 +26,6 @@ public class MyFirebaseService extends FirebaseMessagingService {
         super.onMessageReceived(remoteMessage);
 
         if (remoteMessage.getNotification() != null) {
-            Log.i("MyFirebaseService", "title " + remoteMessage.getNotification().getTitle());
-            Log.i("MyFirebaseService", "body " + remoteMessage.getNotification().getBody());
-
 
             PendingIntent pendingIndent = new NavDeepLinkBuilder(getBaseContext())
                     .setComponentName(MainActivity.class)
@@ -63,6 +60,5 @@ public class MyFirebaseService extends FirebaseMessagingService {
     @Override
     public void onNewToken(String s) {
         super.onNewToken(s);
-        Log.i("MyFirebaseService", "token " + s);
     }
 }

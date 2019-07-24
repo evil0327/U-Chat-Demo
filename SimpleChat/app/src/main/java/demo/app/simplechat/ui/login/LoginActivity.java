@@ -30,8 +30,6 @@ import demo.app.simplechat.repo.LocalRepository;
 import demo.app.simplechat.vm.LoginViewModel;
 
 public class LoginActivity  extends AppCompatActivity{
-    private String TAG = "LoginActivity";
-
     private LoadingDialog mLoadingDialog;
     @Inject
     LocalRepository mLocalRepository;
