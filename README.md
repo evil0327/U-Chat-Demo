@@ -5,4 +5,6 @@
 <html>
 <img src="https://github.com/evil0327/U-Chat-Demo/blob/master/screenshot/s2.jpg" width="300">
 <img src="https://github.com/evil0327/U-Chat-Demo/blob/master/screenshot/s1.jpg" width="300">
+Download 
+<img src="https://github.com/evil0327/U-Chat-Demo/blob/master/screenshot/qrcode.png" width="300">
 </html>
