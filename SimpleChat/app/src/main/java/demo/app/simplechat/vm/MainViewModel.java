@@ -123,14 +123,18 @@ public class MainViewModel extends ViewModel {
     public void getFcmToken(){
         FirebaseInstanceId.getInstance().getInstanceId().addOnSuccessListener(instanceIdResult -> {
             final String deviceToken = instanceIdResult.getToken();
+            Timber.d("getFcmToken token="+deviceToken);
             updateFcmToken(deviceToken, mLocalRepository.getUID());
         });
     }
 
     private void updateFcmToken(String token, String myId){
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        db.collection("users").document(myId).update("token", token).addOnCompleteListener(task -> {
-
+        db.collection("users").document(myId).update("token", token).addOnSuccessListener(new OnSuccessListener<Void>() {
+            @Override
+            public void onSuccess(Void aVoid) {
+                Timber.d("updateFcmToken onSuccess");
+            }
         });
     }
 }

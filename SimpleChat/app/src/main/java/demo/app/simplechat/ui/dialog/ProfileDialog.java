@@ -15,6 +15,8 @@ import com.bumptech.glide.request.RequestOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.util.HashMap;
+
 import javax.inject.Inject;
 
 import butterknife.BindView;
@@ -156,7 +158,10 @@ public class ProfileDialog extends Dialog {
 
     private void updateUserOnFirebase(User user){
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        db.collection("users").document(user.getUid()).set(user).addOnSuccessListener(new OnSuccessListener<Void>() {
+        HashMap map = new HashMap();
+        map.put("avatar", user.getAvatar());
+        map.put("name", user.getName());
+        db.collection("users").document(user.getUid()).update(map).addOnSuccessListener(new OnSuccessListener<Void>() {
             @Override
             public void onSuccess(Void aVoid) {
 
