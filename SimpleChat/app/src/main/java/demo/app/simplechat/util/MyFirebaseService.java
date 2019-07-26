@@ -25,7 +25,8 @@ public class MyFirebaseService extends FirebaseMessagingService {
     public void onMessageReceived(RemoteMessage remoteMessage) {
         super.onMessageReceived(remoteMessage);
 
-        if (remoteMessage.getNotification() != null) {
+        if (remoteMessage.getData() != null) {
+            String content = remoteMessage.getData().get("body");
 
             PendingIntent pendingIndent = new NavDeepLinkBuilder(getBaseContext())
                     .setComponentName(MainActivity.class)
@@ -33,10 +34,11 @@ public class MyFirebaseService extends FirebaseMessagingService {
                     .setDestination(R.id.chatFragment)
                     .createPendingIntent();
 
+
             Notification notification = new NotificationCompat.Builder(getBaseContext(), "my_channel_0")
-                    .setSmallIcon(R.mipmap.ic_launcher_round)
-                    .setContentTitle(remoteMessage.getNotification().getTitle())
-                    .setContentText( remoteMessage.getNotification().getBody())
+                    .setSmallIcon(R.mipmap.app)
+                    .setContentTitle("新着メッセージがあります")
+                    .setContentText( content)
                     .setContentIntent(pendingIndent)
                     .setAutoCancel(true)
                     .build();
