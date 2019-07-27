@@ -5,14 +5,10 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
-import android.media.AudioAttributes;
 import android.os.Build;
-import android.os.Bundle;
-import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 import androidx.navigation.NavDeepLinkBuilder;
-import androidx.navigation.Navigation;
 
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
@@ -34,15 +30,13 @@ public class MyFirebaseService extends FirebaseMessagingService {
                     .setDestination(R.id.chatFragment)
                     .createPendingIntent();
 
-
             Notification notification = new NotificationCompat.Builder(getBaseContext(), "my_channel_0")
                     .setSmallIcon(R.mipmap.app)
-                    .setContentTitle("新着メッセージがあります")
+                    .setContentTitle(getString(R.string.message_coming))
                     .setContentText( content)
                     .setContentIntent(pendingIndent)
                     .setAutoCancel(true)
                     .build();
-
 
             NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
             if (Build.VERSION.SDK_INT >= 26) {
@@ -52,7 +46,6 @@ public class MyFirebaseService extends FirebaseMessagingService {
                     channel = new NotificationChannel("my_channel_0", remoteMessage.getNotification().getTitle(), importance);
                     notificationManager.createNotificationChannel(channel);
                 }
-
             }
             notificationManager.notify(0, notification);
         }

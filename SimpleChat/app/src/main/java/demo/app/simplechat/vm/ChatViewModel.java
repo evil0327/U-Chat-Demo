@@ -24,17 +24,27 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 
 import demo.app.simplechat.db.ChatMessage;
+import demo.app.simplechat.repo.ApiRepository;
 import demo.app.simplechat.repo.DBRepository;
 import io.reactivex.Completable;
+import io.reactivex.MaybeObserver;
 import io.reactivex.Observable;
+import io.reactivex.Single;
+import io.reactivex.SingleEmitter;
 import io.reactivex.SingleObserver;
+import io.reactivex.SingleOnSubscribe;
+import io.reactivex.SingleSource;
+import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Action;
+import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 import timber.log.Timber;
 
@@ -51,10 +61,12 @@ public class ChatViewModel extends BaseViewModel {
     }
 
     private DBRepository mDBRepository;
+    private ApiRepository mApiRepository;
 
     @Inject
-    public ChatViewModel(DBRepository dbRepository) {
+    public ChatViewModel(DBRepository dbRepository, ApiRepository apiRepository) {
         this.mDBRepository = dbRepository;
+        this.mApiRepository = apiRepository;
     }
 
     public void sendMessage(final ChatMessage chatMessage) {
@@ -62,22 +74,41 @@ public class ChatViewModel extends BaseViewModel {
         currentList.add(0, chatMessage);
         mMessagesLiveData.postValue(currentList);
 
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        String id = mApiRepository.getNewChatId();
+        Timber.d("sendMessage get chat id: "+id);
 
-        DocumentReference document = db.collection("chats").document();
-        String id = document.getId();
         chatMessage.setId(id);
+
+        Timber.d("sendMessage chatMessage: "+chatMessage.toString());
 
         mMessageIdSet.add(id);
 
-        document.set(chatMessage).addOnSuccessListener(aVoid -> {
-            Disposable d = Completable.fromAction(() -> {
-                chatMessage.setState(ChatMessage.STATE_SUCCESS);
-                mDBRepository.insertChatMessage(chatMessage);
-                mMessagesLiveData.postValue(currentList);
-            }).subscribeOn(Schedulers.io()).subscribe();
+        mApiRepository.sendMessageToFirebase(chatMessage).subscribeOn(Schedulers.io())
+                .observeOn(Schedulers.io())
+                .doOnSuccess(new Consumer<String>() {
+                    @Override
+                    public void accept(String chatId) throws Exception {
+                        chatMessage.setState(ChatMessage.STATE_SUCCESS);
+                        mDBRepository.insertChatMessage(chatMessage);
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new SingleObserver<String>() {
+                        @Override
+                        public void onSubscribe(Disposable d) {
+                            mDisposables.add(d);
+                        }
 
-            mDisposables.add(d);
+                        @Override
+                        public void onSuccess(String id) {
+                            mMessagesLiveData.postValue(currentList);
+                        }
+
+                        @Override
+                        public void onError(Throwable e) {
+                            e.printStackTrace();
+                        }
         });
 
     }
@@ -122,14 +153,20 @@ public class ChatViewModel extends BaseViewModel {
                 });
     }
 
-    private void loadFromFirebase(final long createTime) {
+    public void loadFromFirebase(final long createTime) {
         Timber.d("start loadData from firebase createTime=" + createTime);
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        db.collection("chats").whereLessThan("createTime", createTime).orderBy("createTime", Query.Direction.DESCENDING).limit(20).get().addOnCompleteListener(task -> {
-            if (task.isSuccessful()) {
-                if (task.getResult().size() == 0) {
+        mApiRepository.getMessagesFromFirebase(createTime).subscribe(new SingleObserver<List<ChatMessage>>() {
+            @Override
+            public void onSubscribe(Disposable d) {
+                mDisposables.add(d);
+            }
+
+            @Override
+            public void onSuccess(List<ChatMessage> messages) {
+                isLoadingData = false;
+                if (messages.size() == 0) {
                     isNoMoreData = true;
-                    if(listenTimeStamp==0){
+                    if (listenTimeStamp == 0) {
                         listenTimeStamp = System.currentTimeMillis();
                         startListen();
                     }
@@ -137,10 +174,7 @@ public class ChatViewModel extends BaseViewModel {
                 }
 
                 ArrayList<ChatMessage> currentList = mMessagesLiveData.getValue();
-                for (QueryDocumentSnapshot document : task.getResult()) {
-                    final ChatMessage chatMessage = document.toObject(ChatMessage.class);
-                    chatMessage.setId(document.getId());
-
+                for (ChatMessage chatMessage : messages) {
                     if (chatMessage.getCreateTime() > listenTimeStamp) {
                         listenTimeStamp = chatMessage.getCreateTime();
                         startListen();
@@ -154,9 +188,13 @@ public class ChatViewModel extends BaseViewModel {
                 }
 
                 mMessagesLiveData.postValue(currentList);
-            } else {
             }
-            isLoadingData = false;
+
+            @Override
+            public void onError(Throwable e) {
+                isLoadingData = false;
+            }
+
         });
     }
 
@@ -168,8 +206,8 @@ public class ChatViewModel extends BaseViewModel {
         if (mEventsListener != null) {
             mEventsListener.remove();
         }
-        Timber.d("startListen createTime=" + listenTimeStamp);
         FirebaseFirestore db = FirebaseFirestore.getInstance();
+        Timber.d("startListen createTime=" + listenTimeStamp);
         mEventsListener = db.collection("chats").whereGreaterThan("createTime", listenTimeStamp).addSnapshotListener((snapshots, e) -> {
             if (snapshots == null) return;
             for (DocumentChange dc : snapshots.getDocumentChanges()) {

@@ -2,24 +2,14 @@ package demo.app.simplechat.ui.login;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.DisplayMetrics;
-import android.util.Log;
-import android.view.MotionEvent;
-import android.view.View;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelProviders;
-import androidx.navigation.Navigation;
-
-import com.google.firebase.auth.FirebaseAuth;
 
 import javax.inject.Inject;
 
-import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 import demo.app.simplechat.R;
@@ -73,6 +63,6 @@ public class LoginActivity  extends AppCompatActivity{
 
     @OnClick(R.id.login)
     public void doLogin(){
-        mViewModel.login();
+        mViewModel.doLogin();
     }
 }

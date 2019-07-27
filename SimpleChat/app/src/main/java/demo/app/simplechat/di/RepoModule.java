@@ -4,11 +4,14 @@ import android.app.Application;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 
+import com.google.firebase.firestore.FirebaseFirestore;
+
 import javax.inject.Singleton;
 
 import dagger.Module;
 import dagger.Provides;
 import demo.app.simplechat.cache.UserCache;
+import demo.app.simplechat.repo.ApiRepository;
 import demo.app.simplechat.repo.DBRepository;
 import demo.app.simplechat.repo.LocalRepository;
 
@@ -37,5 +40,11 @@ public class RepoModule {
     UserCache provideUserCache() {
         UserCache cache = new UserCache();
         return cache;
+    }
+
+    @Singleton
+    @Provides
+    ApiRepository providesApiRepo() {
+        return new ApiRepository();
     }
 }

@@ -29,7 +29,7 @@ public class DBRepository {
     }
 
     public void insertChatMessage(ChatMessage message){
-        MyDatabase.getDatabase(mApplication).getChatMessageDao().insertChatMessage(message);
+         MyDatabase.getDatabase(mApplication).getChatMessageDao().insertChatMessage(message);
     }
 
     public Single<List<ChatMessage>> getChatMessages(long ct){

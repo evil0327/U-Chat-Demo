@@ -1,5 +1,7 @@
 package demo.app.simplechat.vm;
 
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -17,12 +19,19 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 import demo.app.simplechat.db.User;
+import demo.app.simplechat.repo.ApiRepository;
 import demo.app.simplechat.repo.DBRepository;
 import demo.app.simplechat.repo.LocalRepository;
 import io.reactivex.Completable;
+import io.reactivex.SingleObserver;
+import io.reactivex.SingleSource;
+import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Action;
+import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
+import timber.log.Timber;
 
 public class LoginViewModel extends BaseViewModel {
     private MutableLiveData<Boolean> mLoadingShowLiveData = new MutableLiveData<>();
@@ -30,11 +39,13 @@ public class LoginViewModel extends BaseViewModel {
 
     private LocalRepository mLocalRepository;
     private DBRepository mDBRepository;
+    private ApiRepository mApiRepository;
 
     @Inject
-    public LoginViewModel(LocalRepository localRepository, DBRepository dbRepository){
+    public LoginViewModel(LocalRepository localRepository, DBRepository dbRepository, ApiRepository apiRepository){
         this.mLocalRepository = localRepository;
         this.mDBRepository = dbRepository;
+        this.mApiRepository = apiRepository;
     }
 
     public LiveData<Boolean> getLoadingShowLiveData(){
@@ -49,44 +60,52 @@ public class LoginViewModel extends BaseViewModel {
         return mLoginStateLiveData;
     }
 
-    public void login(){
+    public void doLogin(){
         mLoadingShowLiveData.postValue(true);
 
-        FirebaseAuth.getInstance().signInAnonymously()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        FirebaseUser firebaseUser =  FirebaseAuth.getInstance().getCurrentUser();
-                        mLocalRepository.saveUID(firebaseUser.getUid());
+        mApiRepository.doSignInAnonymously().subscribeOn(Schedulers.io())
+                .observeOn(Schedulers.io())
+                .flatMap((Function<String, SingleSource<User>>) userId -> {
+                    final User user = new User();
+                    user.setUid(userId);
+                    user.setName("user_"+ UUID.randomUUID().toString().substring(0,4));
 
-                        final User user = new User();
-                        user.setUid(firebaseUser.getUid());
-                        user.setName("user_"+ UUID.randomUUID().toString().substring(0,4));
+                    Timber.d("doLogin success userId="+userId);
 
-                        Disposable d = Completable.fromAction(() -> {
-                            mDBRepository.upsertUser(user);
-                            createUserOnFirebase(user);
-                        }).subscribeOn(Schedulers.io()).subscribe();
+                    return mApiRepository.createUserOnFirebase(user);
+                }).subscribeOn(Schedulers.io())
+                .observeOn(Schedulers.io())
+                .subscribe(new SingleObserver<User>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
                         mDisposables.add(d);
-                    } else {
+                    }
+
+                    @Override
+                    public void onSuccess(User user) {
+                        Timber.d("doLogin createUserOnFirebase success");
+
+                        mLocalRepository.saveUID(user.getUid());
+                        mDBRepository.upsertUser(user);
+
+                        mLoadingShowLiveData.postValue(false);
+                        mLoginStateLiveData.postValue(true);
+                        mToastMsgLiveData.postValue("Login Success");
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Timber.d(e);
+
                         mLoadingShowLiveData.postValue(false);
                         mLoginStateLiveData.postValue(false);
                         mToastMsgLiveData.postValue("Authentication failed.");
                     }
                 });
+
+
     }
 
-    private void createUserOnFirebase(User user){
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        db.collection("users").document(user.getUid()).set(user).addOnSuccessListener(aVoid -> {
-            mLoginStateLiveData.postValue(true);
-            mLoadingShowLiveData.postValue(false);
-        }).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
-                mLoginStateLiveData.postValue(false);
-                mToastMsgLiveData.postValue("Connecting to server error.");
-                mLoadingShowLiveData.postValue(false);
-            }
-        });
-    }
+
+
 }

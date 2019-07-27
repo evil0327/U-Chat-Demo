@@ -63,4 +63,15 @@ public class ChatMessage {
     public void setState(int state) {
         this.state = state;
     }
+
+    @Override
+    public String toString() {
+        return "ChatMessage{" +
+                "id='" + id + '\'' +
+                ", content='" + content + '\'' +
+                ", userId='" + userId + '\'' +
+                ", createTime=" + createTime +
+                ", state=" + state +
+                '}';
+    }
 }

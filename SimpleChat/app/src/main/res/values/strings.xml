@@ -3,4 +3,5 @@
     <string name="login">匿名ログイン</string>
     <string name="save">保存する</string>
     <string name="start_chat">チャットを開始する</string>
+    <string name="message_coming">新着メッセージがあります</string>
 </resources>

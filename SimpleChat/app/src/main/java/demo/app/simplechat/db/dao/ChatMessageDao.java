@@ -18,9 +18,4 @@ public interface ChatMessageDao {
     @Query("SELECT * FROM `chat_message` WHERE createTime<:createTime order by createTime desc limit 20")
     Single<List<ChatMessage>> getChatMessages(long createTime);
 
-    @Query("DELETE FROM `chat_message` Where id=:messageId")
-    void deleteChatMessage(String messageId);
-
-
-
 }

@@ -81,7 +81,6 @@ public class MainViewModel extends BaseViewModel {
 
     }
 
-
     public void startListen(){
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         mEventsListener = db.collection("users").addSnapshotListener((snapshots, e) -> {
@@ -112,7 +111,6 @@ public class MainViewModel extends BaseViewModel {
 
         Disposable d = Completable.fromAction(() -> mDBRepository.upsertUser(user)).subscribeOn(Schedulers.io()).subscribe();
         mDisposables.add(d);
-
     }
 
     public void stopListen(){
