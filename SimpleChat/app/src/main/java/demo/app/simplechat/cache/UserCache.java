@@ -19,4 +19,12 @@ public class UserCache {
         return mUserMap.get(uid);
     }
 
+    public int getSize(){
+        return mUserMap.size();
+    }
+
+    public boolean containsUser(User user){
+        return mUserMap.containsKey(user.getUid());
+    }
+
 }

@@ -20,11 +20,10 @@ import demo.app.simplechat.repo.LocalRepository;
 import demo.app.simplechat.vm.LoginViewModel;
 
 public class LoginActivity  extends AppCompatActivity{
-    private LoadingDialog mLoadingDialog;
-    @Inject
-    LocalRepository mLocalRepository;
     @Inject
     ViewModelProvider.Factory mViewModelFactory;
+
+    private LoadingDialog mLoadingDialog;
     private LoginViewModel mViewModel;
 
     @Override

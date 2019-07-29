@@ -13,7 +13,10 @@ import io.reactivex.Single;
 @Dao
 public interface ChatMessageDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void insertChatMessage(ChatMessage chatMessage);
+    Single<Long> insertChatMessage(ChatMessage chatMessage);
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    Single<List<Long>> insertChatMessages(List<ChatMessage> chatMessages);
 
     @Query("SELECT * FROM `chat_message` WHERE createTime<:createTime order by createTime desc limit 20")
     Single<List<ChatMessage>> getChatMessages(long createTime);

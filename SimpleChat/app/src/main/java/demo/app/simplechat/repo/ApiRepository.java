@@ -13,9 +13,11 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.iid.FirebaseInstanceId;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import demo.app.simplechat.db.ChatMessage;
@@ -30,6 +32,7 @@ import io.reactivex.SingleEmitter;
 import io.reactivex.SingleOnSubscribe;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
+import timber.log.Timber;
 
 public class ApiRepository {
 
@@ -100,6 +103,37 @@ public class ApiRepository {
                     .addOnSuccessListener(aVoid -> e.onSuccess(user))
                     .addOnFailureListener(exp -> e.onError(exp));
         });
+    }
+
+    public Single<String> getFcmToken() {
+        return Single.create(new SingleOnSubscribe<String>() {
+            @Override
+            public void subscribe(SingleEmitter<String> e) throws Exception {
+                FirebaseInstanceId.getInstance().getInstanceId().addOnSuccessListener(instanceIdResult -> {
+                    final String deviceToken = instanceIdResult.getToken();
+                    Timber.d("getFcmToken token=" + deviceToken);
+                    e.onSuccess(deviceToken);
+                }).addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception exp) {
+                        e.onError(exp);
+                    }
+                });
+            }
+        });
+    }
+
+
+    public Single updateFcmToken(String token, String myId) {
+        return Single.create((SingleOnSubscribe<String>) e -> {
+            FirebaseFirestore db = FirebaseFirestore.getInstance();
+            db.collection("users").document(myId).update("token", token)
+                    .addOnSuccessListener(aVoid -> {
+                        Timber.d("updateFcmToken onSuccess");
+                        e.onSuccess(token);
+                    }).addOnFailureListener(exp -> e.onError(exp));
+        });
+
     }
 
 }

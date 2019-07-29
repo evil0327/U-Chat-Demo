@@ -40,7 +40,7 @@ public class LocalRepositoryTest {
 
     @After
     public void after() {
-        mSharedPreferences.edit().putString("test_pref", null).apply();
+        mSharedPreferences.edit().clear();
     }
 
 }

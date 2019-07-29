@@ -85,30 +85,24 @@ public class ChatViewModel extends BaseViewModel {
 
         mApiRepository.sendMessageToFirebase(chatMessage).subscribeOn(Schedulers.io())
                 .observeOn(Schedulers.io())
-                .doOnSuccess(new Consumer<String>() {
-                    @Override
-                    public void accept(String chatId) throws Exception {
-                        chatMessage.setState(ChatMessage.STATE_SUCCESS);
-                        mDBRepository.insertChatMessage(chatMessage);
-                    }
-                })
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new SingleObserver<String>() {
-                        @Override
-                        public void onSubscribe(Disposable d) {
-                            mDisposables.add(d);
-                        }
+                .flatMap((Function<String, SingleSource<Long>>) chatId -> {
+                    chatMessage.setState(ChatMessage.STATE_SUCCESS);
+                    return  mDBRepository.insertChatMessage(chatMessage);
+                }).subscribe(new SingleObserver<Long>() {
+            @Override
+            public void onSubscribe(Disposable d) {
+                mDisposables.add(d);
+            }
 
-                        @Override
-                        public void onSuccess(String id) {
-                            mMessagesLiveData.postValue(currentList);
-                        }
+            @Override
+            public void onSuccess(Long aLong) {
+                mMessagesLiveData.postValue(currentList);
+            }
 
-                        @Override
-                        public void onError(Throwable e) {
-                            e.printStackTrace();
-                        }
+            @Override
+            public void onError(Throwable e) {
+
+            }
         });
 
     }
@@ -137,6 +131,7 @@ public class ChatViewModel extends BaseViewModel {
                                     startListen();
                                 }
                                 mMessageIdSet.add(chatMessage.getId());
+                                Timber.d("loadData chatMessage=" + chatMessage.toString());
                                 currentList.add(chatMessage);
                             }
                             mMessagesLiveData.postValue(currentList);
@@ -182,11 +177,8 @@ public class ChatViewModel extends BaseViewModel {
 
                     mMessageIdSet.add(chatMessage.getId());
                     currentList.add(chatMessage);
-
-                    Disposable d = Completable.fromAction(() -> mDBRepository.insertChatMessage(chatMessage)).subscribeOn(Schedulers.io()).subscribe();
-                    mDisposables.add(d);
                 }
-
+                saveChatMessageToDB(messages);
                 mMessagesLiveData.postValue(currentList);
             }
 
@@ -198,6 +190,13 @@ public class ChatViewModel extends BaseViewModel {
         });
     }
 
+
+    private void saveChatMessageToDB(List<ChatMessage> messages){
+        mDBRepository.insertChatMessages(messages)
+                .subscribeOn(Schedulers.io())
+                .doOnSubscribe(disposable -> mDisposables.add(disposable))
+                .subscribe();
+    }
 
     public void startListen() {
         if (listenTimeStamp == 0) {
@@ -224,15 +223,8 @@ public class ChatViewModel extends BaseViewModel {
                             currentList.add(0, chatMessage);
                             mMessagesLiveData.postValue(currentList);
 
-                            Disposable d = Completable.fromAction(new Action() {
-                                @Override
-                                public void run() throws Exception {
-                                    mDBRepository.insertChatMessage(chatMessage);
-                                }
-                            })
-                                    .subscribeOn(Schedulers.io())
-                                    .subscribe();
-                            mDisposables.add(d);
+                            mDBRepository.insertChatMessage(chatMessage).subscribeOn(Schedulers.io())
+                                    .doOnSubscribe(disposable -> mDisposables.add(disposable)).subscribe();
                         }
                         break;
                 }

@@ -43,7 +43,7 @@ public class MyFirebaseService extends FirebaseMessagingService {
                 int importance = NotificationManager.IMPORTANCE_HIGH;
                 NotificationChannel channel = notificationManager.getNotificationChannel("my_channel_0");
                 if (channel == null ) {
-                    channel = new NotificationChannel("my_channel_0", remoteMessage.getNotification().getTitle(), importance);
+                    channel = new NotificationChannel("my_channel_0", getString(R.string.message_coming), importance);
                     notificationManager.createNotificationChannel(channel);
                 }
             }

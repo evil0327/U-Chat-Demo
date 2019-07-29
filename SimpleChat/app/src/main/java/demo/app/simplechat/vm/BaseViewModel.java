@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel;
 
 import demo.app.simplechat.util.SingleLiveEvent;
 import io.reactivex.disposables.CompositeDisposable;
-import io.reactivex.disposables.Disposable;
 
 public class BaseViewModel extends ViewModel {
     protected CompositeDisposable mDisposables = new CompositeDisposable();

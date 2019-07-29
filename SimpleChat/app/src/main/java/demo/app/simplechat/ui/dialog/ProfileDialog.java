@@ -4,14 +4,19 @@ import android.animation.Animator;
 import android.animation.ObjectAnimator;
 import android.app.Dialog;
 import android.content.Context;
-import android.view.animation.AccelerateDecelerateInterpolator;
+import android.graphics.Bitmap;
+import android.graphics.Matrix;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.widget.EditText;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.RecyclerView;
+import androidx.annotation.Nullable;
 
 import com.bumptech.glide.request.RequestOptions;
+import com.bumptech.glide.request.target.SimpleTarget;
+import com.bumptech.glide.request.transition.Transition;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -29,12 +34,9 @@ import demo.app.simplechat.repo.DBRepository;
 import demo.app.simplechat.repo.LocalRepository;
 import demo.app.simplechat.util.GlideApp;
 import demo.app.simplechat.util.ImageHelper;
-import io.reactivex.Completable;
-import io.reactivex.CompletableObserver;
 import io.reactivex.SingleObserver;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
-import io.reactivex.functions.Action;
 import io.reactivex.schedulers.Schedulers;
 
 public class ProfileDialog extends Dialog {
@@ -51,6 +53,8 @@ public class ProfileDialog extends Dialog {
     @BindView(R.id.avatar)
     ImageView mAvatarView;
 
+    private boolean mIsFliping =false;
+
     public ProfileDialog(@NonNull Context context) {
         super(context);
         setContentView(R.layout.view_profile_dialog);
@@ -66,39 +70,42 @@ public class ProfileDialog extends Dialog {
 
     @OnClick(R.id.save)
     void save(){
-        mLoadingDialog.show();
-
         mUser.setAvatar(mSelectAvatar);
         mUser.setName(mNameEdit.getText().toString());
 
-        Completable.fromAction(() -> {
-            mDBRepository.upsertUser(mUser);
-            updateUserOnFirebase(mUser);
-        }).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new CompletableObserver() {
-                    @Override
-                    public void onSubscribe(Disposable d) {
+        mLoadingDialog.show();
 
-                    }
+        mDBRepository.upsertUser(mUser).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+               .subscribe(new SingleObserver<Long>() {
+                   @Override
+                   public void onSubscribe(Disposable d) {
 
-                    @Override
-                    public void onComplete() {
-                        mLoadingDialog.dismiss();
-                        dismiss();
-                    }
+                   }
 
-                    @Override
-                    public void onError(Throwable e) {
+                   @Override
+                   public void onSuccess(Long aLong) {
+                       updateUserOnFirebase(mUser);
+                       mLoadingDialog.dismiss();
+                       dismiss();
 
-                    }
-                });
+                   }
+
+                   @Override
+                   public void onError(Throwable e) {
+
+                   }
+               });
     }
 
     @OnClick(R.id.avatar)
     void changeAvatar(){
-        ObjectAnimator animation = ObjectAnimator.ofFloat(mAvatarView, "rotationY", 180f, 0f);
+        ObjectAnimator animation = ObjectAnimator.ofFloat(mAvatarView, "rotationY", 0f, 180f);
         animation.setDuration(700);
-        animation.setInterpolator(new AccelerateDecelerateInterpolator());
+        animation.addUpdateListener(valueAnimator -> {
+            if(((Float)valueAnimator.getAnimatedValue()>=90f)){
+                setNextAvatar();
+            }
+        });
         animation.addListener(new Animator.AnimatorListener() {
             @Override
             public void onAnimationStart(Animator animation) {
@@ -107,13 +114,15 @@ public class ProfileDialog extends Dialog {
 
             @Override
             public void onAnimationEnd(Animator animation) {
-                int[] rs = ImageHelper.getNextResoure(mSelectAvatar);
-                mSelectAvatar = rs[0];
+                mAvatarView.setRotationY(0);
+
                 GlideApp.with(getContext())
-                        .load(rs[1])
+                        .load(ImageHelper.getResource(mSelectAvatar))
                         .centerCrop()
                         .apply(RequestOptions.circleCropTransform())
                         .into(mAvatarView);
+
+                mIsFliping = false;
             }
 
             @Override
@@ -128,6 +137,38 @@ public class ProfileDialog extends Dialog {
         });
         animation.start();
     }
+
+
+    private void setNextAvatar(){
+        if(mIsFliping){
+            return;
+        }
+        mIsFliping = true;
+
+        int[] rs = ImageHelper.getNextResoure(mSelectAvatar);
+        mSelectAvatar = rs[0];
+
+
+        GlideApp.with(getContext())
+                .load(ImageHelper.getResource(mSelectAvatar))
+                .centerCrop()
+                .apply(RequestOptions.circleCropTransform())
+               .into(new SimpleTarget<Drawable>() {
+                   @Override
+                   public void onResourceReady(@NonNull Drawable resource, @Nullable Transition<? super Drawable> transition) {
+                       BitmapDrawable bd = (BitmapDrawable) resource;
+                       Bitmap bm = bd.getBitmap();
+
+                       Matrix matrix = new Matrix();
+                       matrix.preScale(-1.0f, 1.0f);
+                       Bitmap rs = Bitmap.createBitmap(bm, 0, 0, bm.getWidth(), bm.getHeight(), matrix, true);
+
+                       mAvatarView.setImageBitmap(rs);
+                   }
+               });
+
+    }
+
     private void initData(){
         mDBRepository.getUserById(mLocalRepository.getUID()).subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())

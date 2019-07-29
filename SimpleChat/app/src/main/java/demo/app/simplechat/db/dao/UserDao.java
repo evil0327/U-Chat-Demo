@@ -13,7 +13,7 @@ import io.reactivex.Single;
 @Dao
 public interface UserDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void upsertUser(User user);
+    Single<Long> upsertUser(User user);
 
     @Query("SELECT * FROM `user`")
     Single<List<User>> getAllUsers();

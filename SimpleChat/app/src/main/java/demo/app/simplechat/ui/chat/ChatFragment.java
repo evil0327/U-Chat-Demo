@@ -2,6 +2,7 @@ package demo.app.simplechat.ui.chat;
 
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -38,7 +39,6 @@ import demo.app.simplechat.util.MyEvent;
 import demo.app.simplechat.vm.ChatViewModel;
 
 public class ChatFragment extends Fragment {
-    private final String TAG = "ChatFragment";
     private Unbinder mUnbinder;
     private ChatMessageAdapter mAdapter;
     private List<ChatMessage> mList = new ArrayList<>();
@@ -70,7 +70,6 @@ public class ChatFragment extends Fragment {
         linearLayoutManager.setStackFromEnd(true);
         mRecyclerView.setLayoutManager(linearLayoutManager);
         mRecyclerView.setAdapter(mAdapter);
-
 
         mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
@@ -113,7 +112,7 @@ public class ChatFragment extends Fragment {
 
         mInputEdit.setText("");
         mViewModel.sendMessage(chat);
-        scrollToBottom();
+        scrollToBottom(0);
     }
 
     @Override
@@ -125,25 +124,28 @@ public class ChatFragment extends Fragment {
 
         mViewModel = ViewModelProviders.of(this, mViewModelFactory).get(ChatViewModel.class);
         mViewModel.getMessagesLiveData().observe(this, (Observer<List<ChatMessage>>) chatMessages -> {
+            if(mAdapter.getItemCount()==0){
+                scrollToBottom(100);
+            }
             mAdapter.setData(chatMessages);
-            mAdapter.notifyDataSetChanged();
         });
 
         mViewModel.loadMessages(Long.MAX_VALUE);
-        scrollToBottom();
+        scrollToBottom(0);
     }
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
-
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMessageEvent(MyEvent event) {
-        mAdapter.notifyDataSetChanged();
-    };
+        if(MyEvent.NOTIFY_USER_CHANGE.equals(event.getEvent())){
+            mAdapter.notifyDataSetChanged();
+        }
+    }
 
     @Override
     public void onStart() {
@@ -159,8 +161,8 @@ public class ChatFragment extends Fragment {
         mEventBus.unregister(this);
     }
 
-    private void scrollToBottom(){
-        mRecyclerView.post(() -> mRecyclerView.smoothScrollToPosition(0));
+    private void scrollToBottom(long delay){
+        mRecyclerView.postDelayed(() -> mRecyclerView.smoothScrollToPosition(0), delay);
     }
 
     @Override

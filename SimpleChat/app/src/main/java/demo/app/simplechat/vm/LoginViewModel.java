@@ -63,10 +63,11 @@ public class LoginViewModel extends BaseViewModel {
     public void doLogin(){
         mLoadingShowLiveData.postValue(true);
 
+        final User user = new User();
+
         mApiRepository.doSignInAnonymously().subscribeOn(Schedulers.io())
                 .observeOn(Schedulers.io())
                 .flatMap((Function<String, SingleSource<User>>) userId -> {
-                    final User user = new User();
                     user.setUid(userId);
                     user.setName("user_"+ UUID.randomUUID().toString().substring(0,4));
 
@@ -75,34 +76,28 @@ public class LoginViewModel extends BaseViewModel {
                     return mApiRepository.createUserOnFirebase(user);
                 }).subscribeOn(Schedulers.io())
                 .observeOn(Schedulers.io())
-                .subscribe(new SingleObserver<User>() {
+                .flatMap((Function<User, SingleSource<Long>>) u -> mDBRepository.upsertUser(u))
+                .subscribe(new SingleObserver<Long>() {
                     @Override
                     public void onSubscribe(Disposable d) {
                         mDisposables.add(d);
                     }
 
                     @Override
-                    public void onSuccess(User user) {
-                        Timber.d("doLogin createUserOnFirebase success");
-
+                    public void onSuccess(Long aLong) {
                         mLocalRepository.saveUID(user.getUid());
-                        mDBRepository.upsertUser(user);
-
                         mLoadingShowLiveData.postValue(false);
                         mLoginStateLiveData.postValue(true);
-                        mToastMsgLiveData.postValue("Login Success");
                     }
 
                     @Override
                     public void onError(Throwable e) {
-                        Timber.d(e);
-
                         mLoadingShowLiveData.postValue(false);
                         mLoginStateLiveData.postValue(false);
-                        mToastMsgLiveData.postValue("Authentication failed.");
-                    }
-                });
+                        mToastMsgLiveData.postValue("Auth Fail");
 
+                    }
+        });
 
     }
 

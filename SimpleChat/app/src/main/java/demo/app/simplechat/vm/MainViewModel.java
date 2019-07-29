@@ -28,60 +28,72 @@ import javax.inject.Inject;
 
 import demo.app.simplechat.cache.UserCache;
 import demo.app.simplechat.db.User;
+import demo.app.simplechat.repo.ApiRepository;
 import demo.app.simplechat.repo.DBRepository;
 import demo.app.simplechat.repo.LocalRepository;
 import io.reactivex.Completable;
+import io.reactivex.Flowable;
+import io.reactivex.Observable;
+import io.reactivex.ObservableSource;
+import io.reactivex.Observer;
 import io.reactivex.SingleObserver;
+import io.reactivex.SingleSource;
 import io.reactivex.disposables.Disposable;
-import io.reactivex.functions.Action;
+import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 import timber.log.Timber;
 
 public class MainViewModel extends BaseViewModel {
     private MutableLiveData<HashMap<String, User>> mUsersLiveData = new MutableLiveData<>();
     private DBRepository mDBRepository;
+    private ApiRepository mApiRepository;
     private LocalRepository mLocalRepository;
     private ListenerRegistration mEventsListener;
     private UserCache mUserCache;
 
     @Inject
-    public MainViewModel(DBRepository dbRepository, LocalRepository localRepository, UserCache userCache) {
+    public MainViewModel(DBRepository dbRepository, LocalRepository localRepository, ApiRepository apiRepository, UserCache userCache) {
         this.mDBRepository = dbRepository;
         this.mLocalRepository = localRepository;
+        this.mApiRepository = apiRepository;
         this.mUserCache = userCache;
 
-        refreshUsers();
     }
 
-    public LiveData<HashMap<String, User>> getLiveUserMap(){
+    public LiveData<HashMap<String, User>> getLiveUserMap() {
         return mUsersLiveData;
     }
 
-    public void refreshUsers(){
-        mDBRepository.getAllUsers().subscribeOn(Schedulers.io())
-                .subscribe(new SingleObserver<List<User>>() {
+    public void refreshUsers() {
+        mDBRepository.getAllUsers()
+                .subscribeOn(Schedulers.io())
+                .flatMapObservable((Function<List<User>, ObservableSource<User>>) users -> Observable.fromIterable(users))
+                .subscribe(new Observer<User>() {
                     @Override
                     public void onSubscribe(Disposable d) {
                         mDisposables.add(d);
                     }
 
                     @Override
-                    public void onSuccess(List<User> users) {
-                        for(User u : users){
-                            mUserCache.putUser(u);
-                        }
-                        mUsersLiveData.postValue(mUserCache.getUserMap());
+                    public void onNext(User user) {
+                        mUserCache.putUser(user);
                     }
 
                     @Override
                     public void onError(Throwable e) {
 
                     }
-                });
+                    @Override
+                    public void onComplete() {
+                        mUsersLiveData.postValue(mUserCache.getUserMap());
+                    }
+        });
+
 
     }
 
-    public void startListen(){
+    public void startListen() {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         mEventsListener = db.collection("users").addSnapshotListener((snapshots, e) -> {
             Timber.d("onEvent snapshots=" + (snapshots == null));
@@ -105,35 +117,25 @@ public class MainViewModel extends BaseViewModel {
         });
     }
 
-    private void upsertUserToDB(final User user){
+    private void upsertUserToDB(final User user) {
         HashMap<String, User> map = mUserCache.getUserMap();
         map.put(user.getUid(), user);
 
-        Disposable d = Completable.fromAction(() -> mDBRepository.upsertUser(user)).subscribeOn(Schedulers.io()).subscribe();
-        mDisposables.add(d);
+        mDBRepository.upsertUser(user).subscribeOn(Schedulers.io())
+                .subscribe();
     }
 
-    public void stopListen(){
-        if(mEventsListener==null){
+    public void stopListen() {
+        if (mEventsListener != null) {
             mEventsListener.remove();
         }
     }
 
-    public void getFcmToken(){
-        FirebaseInstanceId.getInstance().getInstanceId().addOnSuccessListener(instanceIdResult -> {
-            final String deviceToken = instanceIdResult.getToken();
-            Timber.d("getFcmToken token="+deviceToken);
-            updateFcmToken(deviceToken, mLocalRepository.getUID());
-        });
+    public void getFcmToken() {
+        mApiRepository.getFcmToken().subscribeOn(Schedulers.io())
+                .flatMap((Function<String, SingleSource<?>>)
+                        token -> mApiRepository.updateFcmToken(token, mLocalRepository.getUID()))
+                .subscribe();
     }
 
-    private void updateFcmToken(String token, String myId){
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        db.collection("users").document(myId).update("token", token).addOnSuccessListener(new OnSuccessListener<Void>() {
-            @Override
-            public void onSuccess(Void aVoid) {
-                Timber.d("updateFcmToken onSuccess");
-            }
-        });
-    }
 }
