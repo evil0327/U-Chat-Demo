@@ -10,7 +10,7 @@ import javax.inject.Singleton;
 
 import dagger.Module;
 import dagger.Provides;
-import demo.app.simplechat.cache.UserCache;
+import demo.app.simplechat.cache.UserLiveCache;
 import demo.app.simplechat.repo.ApiRepository;
 import demo.app.simplechat.repo.DBRepository;
 import demo.app.simplechat.repo.LocalRepository;
@@ -37,8 +37,8 @@ public class RepoModule {
 
     @Provides
     @Singleton
-    UserCache provideUserCache() {
-        UserCache cache = new UserCache();
+    UserLiveCache provideUserCache() {
+        UserLiveCache cache = new UserLiveCache();
         return cache;
     }
 

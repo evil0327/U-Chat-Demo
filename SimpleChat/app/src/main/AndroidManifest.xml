@@ -22,7 +22,6 @@
 
         </activity>
         <activity android:name=".ui.login.LoginActivity" android:theme="@style/Theme.AppCompat.NoActionBar" />
-
         <service android:name="demo.app.simplechat.util.MyFirebaseService">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />

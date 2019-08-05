@@ -3,8 +3,11 @@ package demo.app.simplechat.vm;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.LifecycleObserver;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.OnLifecycleEvent;
 import androidx.lifecycle.ViewModel;
 
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -48,7 +51,7 @@ import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 import timber.log.Timber;
 
-public class ChatViewModel extends BaseViewModel {
+public class ChatViewModel extends BaseViewModel implements LifecycleObserver {
     private MutableLiveData<ArrayList<ChatMessage>> mMessagesLiveData = new MutableLiveData<>(new ArrayList<>());
     private Set<String> mMessageIdSet = new HashSet<>();
     private boolean isLoadingData = false;
@@ -198,7 +201,9 @@ public class ChatViewModel extends BaseViewModel {
                 .subscribe();
     }
 
-    public void startListen() {
+    @OnLifecycleEvent(Lifecycle.Event.ON_CREATE)
+    private void startListen() {
+        Timber.d("startListen createTime=" + listenTimeStamp);
         if (listenTimeStamp == 0) {
             return;
         }
@@ -232,7 +237,9 @@ public class ChatViewModel extends BaseViewModel {
         });
     }
 
-    public void stopListen() {
+    @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+    private void stopListen() {
+        Timber.d("stopListen");
         if (mEventsListener != null) {
             mEventsListener.remove();
         }

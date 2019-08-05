@@ -9,6 +9,7 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.StrictMode;
 import android.util.Log;
 
@@ -20,6 +21,7 @@ import java.util.concurrent.Callable;
 import javax.inject.Inject;
 
 import demo.app.simplechat.R;
+import demo.app.simplechat.cache.UserLiveCache;
 import demo.app.simplechat.db.User;
 import demo.app.simplechat.di.DaggerComponentHolder;
 import demo.app.simplechat.ui.dialog.ProfileDialog;
@@ -49,7 +51,8 @@ public class MainActivity extends AppCompatActivity {
         DaggerComponentHolder.getAppComponent().inject(this);
 
         mViewModel = ViewModelProviders.of(this, mViewModelFactory).get(MainViewModel.class);
-        mViewModel.getLiveUserMap().observe(this, map -> EventBus.getDefault().post(new MyEvent(MyEvent.NOTIFY_USER_CHANGE)));
+
+        getLifecycle().addObserver(mViewModel);
 
         Observable.fromCallable(() -> mLocalRepository.isLogin()).subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
@@ -76,21 +79,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    @Override
-    public void onStart() {
-        super.onStart();
-        if(mViewModel!=null){
-            mViewModel.startListen();
-        }
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
-        if(mViewModel!=null){
-            mViewModel.stopListen();
-        }
-    }
 
     @Override
     protected void onDestroy() {

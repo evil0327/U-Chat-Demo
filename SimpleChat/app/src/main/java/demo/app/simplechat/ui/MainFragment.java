@@ -3,6 +3,7 @@ package demo.app.simplechat.ui;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.StrictMode;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -14,10 +15,13 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 
 import com.bumptech.glide.request.RequestOptions;
+
+import java.util.HashMap;
 
 import javax.inject.Inject;
 
@@ -26,6 +30,7 @@ import butterknife.ButterKnife;
 import butterknife.OnClick;
 import butterknife.Unbinder;
 import demo.app.simplechat.R;
+import demo.app.simplechat.cache.UserLiveCache;
 import demo.app.simplechat.db.User;
 import demo.app.simplechat.di.DaggerComponentHolder;
 import demo.app.simplechat.repo.DBRepository;
@@ -54,6 +59,12 @@ public class MainFragment extends Fragment {
     @BindView(R.id.avatar)
     ImageView mAvatarView;
 
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        DaggerComponentHolder.getAppComponent().inject(this);
+    }
+
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -67,8 +78,6 @@ public class MainFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
-        DaggerComponentHolder.getAppComponent().inject(this);
 
         mProfileDialog = new ProfileDialog(getContext());
         if(mLocalRepository.isFirstTimeUse()){

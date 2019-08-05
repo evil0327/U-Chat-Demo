@@ -23,6 +23,7 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -32,7 +33,9 @@ import butterknife.ButterKnife;
 import butterknife.OnClick;
 import butterknife.Unbinder;
 import demo.app.simplechat.R;
+import demo.app.simplechat.cache.UserLiveCache;
 import demo.app.simplechat.db.ChatMessage;
+import demo.app.simplechat.db.User;
 import demo.app.simplechat.di.DaggerComponentHolder;
 import demo.app.simplechat.repo.LocalRepository;
 import demo.app.simplechat.util.MyEvent;
@@ -48,6 +51,8 @@ public class ChatFragment extends Fragment {
 
     @Inject
     LocalRepository mLocalRepository;
+    @Inject
+    UserLiveCache mUserLiveCache;
 
     private EventBus mEventBus;
 
@@ -55,6 +60,15 @@ public class ChatFragment extends Fragment {
     RecyclerView mRecyclerView;
     @BindView(R.id.edit)
     EditText mInputEdit;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        DaggerComponentHolder.getAppComponent().inject(this);
+
+        mViewModel = ViewModelProviders.of(this, mViewModelFactory).get(ChatViewModel.class);
+        getLifecycle().addObserver(mViewModel);
+    }
 
     @Nullable
     @Override
@@ -118,11 +132,9 @@ public class ChatFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        DaggerComponentHolder.getAppComponent().inject(this);
 
         mEventBus = EventBus.getDefault();
 
-        mViewModel = ViewModelProviders.of(this, mViewModelFactory).get(ChatViewModel.class);
         mViewModel.getMessagesLiveData().observe(this, (Observer<List<ChatMessage>>) chatMessages -> {
             if(mAdapter.getItemCount()==0){
                 scrollToBottom(100);
@@ -130,7 +142,16 @@ public class ChatFragment extends Fragment {
             mAdapter.setData(chatMessages);
         });
 
+
+        mUserLiveCache.observe(this, new Observer<HashMap<String, User>>() {
+            @Override
+            public void onChanged(HashMap<String, User> hashMap) {
+                mAdapter.notifyDataSetChanged();
+            }
+        });
+
         mViewModel.loadMessages(Long.MAX_VALUE);
+
         scrollToBottom(0);
     }
 
@@ -150,14 +171,12 @@ public class ChatFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-        mViewModel.startListen();
         mEventBus.register(this);
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        mViewModel.stopListen();
         mEventBus.unregister(this);
     }
 

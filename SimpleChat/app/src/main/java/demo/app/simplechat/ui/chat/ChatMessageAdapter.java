@@ -8,17 +8,19 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.lifecycle.Observer;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.request.RequestOptions;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import javax.inject.Inject;
 
 import demo.app.simplechat.R;
-import demo.app.simplechat.cache.UserCache;
+import demo.app.simplechat.cache.UserLiveCache;
 import demo.app.simplechat.db.ChatMessage;
 import demo.app.simplechat.db.User;
 import demo.app.simplechat.di.DaggerComponentHolder;
@@ -34,7 +36,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     @Inject
     LocalRepository mLocalRepository;
     @Inject
-    UserCache mUserCache;
+    UserLiveCache mUserLiveCache;
 
     private Context mContext;
 
@@ -43,7 +45,6 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
 
         mContext = context;
     }
-
 
     public void setData(List<ChatMessage> list) {
         mList = list;
@@ -79,10 +80,11 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         } else {
             TalkFriendHolder vh = (TalkFriendHolder) holder;
 
-            User friend = mUserCache.getUserByUid(message.getUserId());
+            User friend = mUserLiveCache.getUserByUid(message.getUserId());
 
             int avatar = 0;
             String name = "";
+
             if(friend!=null){
                 avatar = friend.getAvatar();
                 name = friend.getName();
@@ -98,7 +100,6 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             vh.nameView.setText(name);
         }
     }
-
 
     @Override
     public int getItemViewType(int position) {
@@ -141,4 +142,6 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             avatarView = itemView.findViewById(R.id.avatar);
         }
     }
+
+
 }

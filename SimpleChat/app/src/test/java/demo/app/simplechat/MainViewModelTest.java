@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import demo.app.simplechat.cache.UserCache;
+import demo.app.simplechat.cache.UserLiveCache;
 import demo.app.simplechat.db.ChatMessage;
 import demo.app.simplechat.db.User;
 import demo.app.simplechat.repo.ApiRepository;
@@ -44,8 +44,7 @@ public class MainViewModelTest {
     ApiRepository mApiRepository;
 
     private MainViewModel mViewModel;
-
-    private UserCache mUserCache = new UserCache();
+    private UserLiveCache mUserCache;
 
     private static List<User> FAKE_LIST = new ArrayList<>();
 
@@ -74,6 +73,7 @@ public class MainViewModelTest {
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
+        mUserCache = new UserLiveCache();
         mViewModel  = new MainViewModel(mDBRepository, mLocalRepository, mApiRepository, mUserCache);
     }
 
@@ -93,6 +93,5 @@ public class MainViewModelTest {
         Assert.assertTrue(mUserCache.containsUser(u1));
         Assert.assertTrue(mUserCache.containsUser(u2));
         Assert.assertEquals(mUserCache.getSize(), 2);
-        Assert.assertEquals(mViewModel.getLiveUserMap().getValue().size(), 2);
     }
 }

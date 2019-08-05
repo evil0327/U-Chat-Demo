@@ -32,6 +32,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
@@ -113,6 +114,7 @@ public class ChatViewModelTest {
         when(mApiRepository.sendMessageToFirebase(any())).thenReturn(Single.just("chat_id"));
 
         ChatMessage chatMessage = new ChatMessage();
+        chatMessage.setId(UUID.randomUUID().toString());
         mViewModel.sendMessage(chatMessage);
 
         List<ChatMessage> list = mViewModel.getMessagesLiveData().getValue();
